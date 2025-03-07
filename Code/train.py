@@ -3,36 +3,44 @@ import torch.nn as nn
 import torch.optim as optim
 from data_processing import get_dataloader
 from models.pitch_features import PitchFeaturesModel
-from models.pitch_count import PitchCountModel
+from config import DEVICE, DATA_PATH, LEARNING_RATE, NUM_EPOCHS
 
-# Load data
-train_loader = get_dataloader("data/train.csv")
+# Load dataset
+train_loader = get_dataloader(DATA_PATH)
 
-# Load models
-pitch_sequence_model = PitchFeaturesModel(num_pitch_types=7, input_dim=10, hidden_dim=128, num_layers=2)
-pitch_count_model = PitchCountModel(num_pitchers=500, input_dim=10)
+# Initialize model
+model = PitchFeaturesModel(
+    num_pitch_types=7, num_pitchers=500, num_batters=500, num_stands=2,
+    num_p_throws=2, num_innings=9, input_dim=20, hidden_dim=128, num_layers=2
+).to(DEVICE)
 
-# Define loss functions
+# Define loss function & optimizer
 loss_fn = nn.MSELoss()
-optimizer = optim.Adam(list(pitch_sequence_model.parameters()) + list(pitch_count_model.parameters()), lr=0.001)
+optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
 # Training loop
-num_epochs = 10
-for epoch in range(num_epochs):
-    for batch in train_loader:
-        optimizer.zero_grad()
+for epoch in range(NUM_EPOCHS):
+    for categorical_values, numerical_values in train_loader:
+        categorical_values = categorical_values.to(DEVICE)
+        numerical_values = numerical_values.to(DEVICE)
 
-        # Forward pass
-        pitch_seq_preds = pitch_sequence_model(batch)
-        pitch_count_preds = pitch_count_model(batch[:, 0].long(), batch[:, 1:])
+        optimizer.zero_grad()
+        predictions = model(
+            pitch_seq=numerical_values[:, :10],
+            pitcher_ids=categorical_values[:, 0],
+            batter_ids=categorical_values[:, 1],
+            stands=categorical_values[:, 2],
+            p_throws=categorical_values[:, 3],
+            innings=categorical_values[:, 4],
+            numerical_features=numerical_values
+        )
 
         # Compute loss
-        loss_seq = loss_fn(pitch_seq_preds["speed"], batch[:, 2])  # Predicting pitch speed
-        loss_count = loss_fn(pitch_count_preds, batch[:, 3])  # Predicting total pitch count
-        total_loss = loss_seq + loss_count
-
-        # Backward pass
-        total_loss.backward()
+        loss = loss_fn(predictions["speed"], numerical_values[:, 5])
+        loss.backward()
         optimizer.step()
 
-    print(f"Epoch {epoch+1}, Loss: {total_loss.item():.4f}")
+    print(f"Epoch {epoch+1}, Loss: {loss.item():.4f}")
+
+# Save model
+torch.save(model.state_dict(), "saved_models/pitch_features.pth")

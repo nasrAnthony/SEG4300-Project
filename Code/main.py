@@ -1,30 +1,27 @@
 import torch
 from models.pitch_features import PitchFeaturesModel
-from models.pitch_count import PitchCountModel
 from simulation import GameSimulator
+from config import DEVICE
 
-# Load models
-pitch_sequence_model = PitchFeaturesModel(num_pitch_types=7, input_dim=10, hidden_dim=128, num_layers=2)
-pitch_count_model = PitchCountModel(num_pitchers=500, input_dim=10)
+# Load trained model
+model = PitchFeaturesModel(
+    num_pitch_types=7, num_pitchers=500, num_batters=500, num_stands=2,
+    num_p_throws=2, num_innings=9, input_dim=20, hidden_dim=128, num_layers=2
+)
+model.load_state_dict(torch.load("saved_models/pitch_features.pth"))
+model.eval()
 
-# Load pre-trained weights (optional)
-pitch_sequence_model.load_state_dict(torch.load("saved_models/pitch_sequence.pth"))
-pitch_count_model.load_state_dict(torch.load("saved_models/pitch_count.pth"))
+# Initialize game simulator
+simulator = GameSimulator(model)
 
-# Set to evaluation mode
-pitch_sequence_model.eval()
-pitch_count_model.eval()
+# Example game state
+game_state = {"inning": 1, "outs": 0, "balls": 0, "strikes": 0, "home_score": 0, "away_score": 0, "stand": 1, "p_throws": 1}
 
-# Initialize simulator
-simulator = GameSimulator(pitch_sequence_model, pitch_count_model)
+# Example pitcher and lineup
+pitcher_id = 123
+lineup = [657077, 621654, 669224, 669257, 643446, 621446, 592450, 554654, 492354]
 
-# Example game setup
-game_context = {"inning": 1, "home_score": 0, "away_score": 0, "outs": 0}
-pitcher_id = 123  # Example pitcher ID
-lineup = [657077, 621654, 669224]  # Example batting lineup (batter IDs)
-
-# Run the game simulation
-predicted_game_pitches = simulator.simulate_game(pitcher_id, lineup, game_context)
-
-# Output results
-print(predicted_game_pitches)
+# Run game simulation
+game_pitches = simulator.simulate_game(pitcher_id, lineup, game_state)
+print("\nFinal Pitch Sequences:")
+print(game_pitches)

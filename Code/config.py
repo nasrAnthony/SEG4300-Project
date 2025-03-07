@@ -5,28 +5,67 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"  # Use GPU if available
 SEED = 42  # Set seed for reproducibility
 
 ### 📂 File Paths
-DATA_PATH = "data/statcast_data.csv"
-MODEL_SAVE_DIR = "saved_models/"
-LOGS_DIR = "logs/"
+DATA_PATH = "C:\Users\Richard\Documents\SEG4300\Project\SEG4300-Project\partclean_statcast_15to24.csv"  # Raw dataset
+TRAINED_MODELS_DIR = "saved_models/"  # Directory for saving trained models
+LOGS_DIR = "logs/"  # Training logs
 
 ### 🎯 Hyperparameters
-# LSTM Model Hyperparameters (Pitch Sequence Model)
-LSTM_INPUT_DIM = 10
+# 🔹 LSTM Model for Pitch Sequence Prediction
+LSTM_INPUT_DIM = 20  # Adjusted for more features
 LSTM_HIDDEN_DIM = 128
 LSTM_NUM_LAYERS = 2
 LSTM_DROPOUT = 0.3
 
-# MLP Model Hyperparameters (Pitch Count Model)
+# 🔹 MLP Model for Total Pitch Count Prediction
 MLP_HIDDEN_DIM = 64
 
-# Training Hyperparameters
+# 🔹 Training Settings
 BATCH_SIZE = 32
 LEARNING_RATE = 0.001
 NUM_EPOCHS = 20
-LOSS_FUNCTION = "MSE"  # Loss function for regression
 WEIGHT_DECAY = 1e-5  # Regularization
 
-### 🧩 Categorical Mappings
+# 🔹 Loss Function
+LOSS_FUNCTION = "MSE"  # Options: "MSE" (Regression), "CrossEntropy" (Classification)
+
+### ⚾ Game Simulation Settings
+MAX_PITCH_COUNT = 120  # Maximum pitches before pitcher is pulled
+INNINGS = 9  # Standard MLB game length
+BULLPEN_USAGE_FACTOR = 1.0  # Controls pitcher substitution likelihood
+
+### 📊 Logging & Debugging
+LOG_INTERVAL = 10  # How often to log training progress
+SAVE_MODEL_EVERY = 5  # Save model every X epochs
+DEBUG_MODE = False  # Enable/disable debugging prints
+
+### 🏷 Feature Lists
+# 🔹 Categorical Features (Will Be Embedded)
+CATEGORICAL_FEATURES = [
+    "pitcher", "batter", "inning_topbot", "stand", "p_throws", "game_pk"
+]
+
+# 🔹 Numerical Features (Will Be Scaled)
+NUMERICAL_FEATURES = [
+    "release_speed", "release_spin_rate", "release_extension",
+    "plate_x", "plate_z", "vx0", "vy0", "vz0", "ax", "ay", "az",
+    "balls", "strikes", "outs_when_up", "effective_speed", "delta_run_exp"
+]
+
+# 🔹 All Features (For Data Processing)
+FEATURE_COLUMNS = CATEGORICAL_FEATURES + NUMERICAL_FEATURES
+
+### 🔹 Target Variables (Model Outputs)
+TARGET_FEATURES = [
+    "pitch_type",  # Categorical prediction
+    "release_speed", "release_spin_rate", "release_extension",  # Regression
+    "plate_x", "plate_z"  # Location predictions
+]
+
+### 🔹 Feature Scaling Options
+SCALING_METHOD = "standard"  # Choose between "minmax" or "standard"
+MISSING_VALUE_STRATEGY = "median"  # Fill missing values with median or mean
+
+### 🎭 Categorical Mappings
 PITCH_TYPES = {
     0: "Fastball",
     1: "Curveball",
@@ -42,26 +81,3 @@ OUTCOME_TYPES = {
     1: "Strike",
     2: "Contact"
 }
-
-### ⚾ Game Simulation Settings
-MAX_PITCH_COUNT = 120  # Max pitches before pitcher is pulled
-INNINGS = 9  # Standard MLB game length
-BULLPEN_USAGE_FACTOR = 1.0  # Adjusts likelihood of replacing a pitcher
-
-### 📊 Logging & Debugging
-LOG_INTERVAL = 10  # How often to log training progress
-SAVE_MODEL_EVERY = 5  # Save model every X epochs
-DEBUG_MODE = False  # Enable/disable debugging prints
-
-### 📌 Data Processing
-FEATURE_COLUMNS = [
-    "pitch_type", "release_speed", "release_spin_rate", "effective_speed", 
-    "plate_x", "plate_z", "inning", "outs_when_up", "balls", "strikes", 
-    "batter", "pitcher", "vx0", "vy0", "vz0", "ax", "ay", "az"
-]
-
-CATEGORICAL_FEATURES = ["pitcher", "batter", "inning_topbot", "stand", "p_throws"]
-NUMERICAL_FEATURES = ["release_speed", "release_spin_rate", "plate_x", "plate_z", "effective_speed"]
-
-SCALING_METHOD = "standard"  # Choose between "minmax" or "standard"
-MISSING_VALUE_STRATEGY = "median"  # Fill missing values with median or mean
