@@ -1,3 +1,4 @@
 mlb_statcast_2015-24.csv
 project_venv/
 Code/partclean_statcast_15to24.csv
+Code/__pycache__/

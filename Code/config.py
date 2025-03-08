@@ -5,7 +5,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"  # Use GPU if available
 SEED = 42  # Set seed for reproducibility
 
 ### 📂 File Paths
-DATA_PATH = "C:\Users\Richard\Documents\SEG4300\Project\SEG4300-Project\partclean_statcast_15to24.csv"  # Raw dataset
+DATA_PATH = r"C:\Users\Richard\Documents\SEG4300\Project\SEG4300-Project\partclean_statcast_15to24.csv"  # Raw dataset
 TRAINED_MODELS_DIR = "saved_models/"  # Directory for saving trained models
 LOGS_DIR = "logs/"  # Training logs
 

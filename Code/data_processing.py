@@ -8,7 +8,7 @@ class PitchDataset(Dataset):
     """
     Custom dataset class to process and load MLB pitch data.
     """
-    def __init__(self, file_path=DATA_PATH):
+    def __init__(self, file_path=DATA_PATH, save_path=None):
         self.data = pd.read_csv(file_path)[FEATURE_COLUMNS]
 
         # 🔹 Encode categorical features as indices
@@ -19,6 +19,12 @@ class PitchDataset(Dataset):
         # 🔹 Scale numerical features
         self.scaler = StandardScaler() if SCALING_METHOD == "standard" else MinMaxScaler()
         self.data[NUMERICAL_FEATURES] = self.scaler.fit_transform(self.data[NUMERICAL_FEATURES])
+
+        self.categorical_tensor = torch.tensor(self.data[CATEGORICAL_FEATURES].values, dtype=torch.long)
+        self.numerical_tensor = torch.tensor(self.data[NUMERICAL_FEATURES].values, dtype=torch.float32)
+
+        if save_path:
+            torch.save((self.categorical_tensor, self.numerical_tensor), save_path)
 
     def __len__(self):
         return len(self.data)
@@ -33,3 +39,6 @@ def get_dataloader(file_path=DATA_PATH, batch_size=BATCH_SIZE):
     """Returns a PyTorch DataLoader for the dataset."""
     dataset = PitchDataset(file_path)
     return DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
+def proc_save_dataset(file_path=DATA_PATH, save_path=None):
+    dataset = PitchDataset(file_path, save_path)
