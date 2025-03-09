@@ -8,6 +8,8 @@ SEED = 42  # Set seed for reproducibility
 DATA_PATH = r"C:\Users\Richard\Documents\SEG4300\Project\SEG4300-Project\partclean_statcast_15to24.csv"  # Raw dataset
 TRAINED_MODELS_DIR = "saved_models/"  # Directory for saving trained models
 LOGS_DIR = "logs/"  # Training logs
+TRAIN_FILE = r"C:\Users\Richard\Documents\SEG4300\Project\SEG4300-Project\train_data.pt"
+TEST_FILE = r"C:\Users\Richard\Documents\SEG4300\Project\SEG4300-Project\test_data.pt"
 
 ### 🎯 Hyperparameters
 # 🔹 LSTM Model for Pitch Sequence Prediction
@@ -24,6 +26,7 @@ BATCH_SIZE = 32
 LEARNING_RATE = 0.001
 NUM_EPOCHS = 20
 WEIGHT_DECAY = 1e-5  # Regularization
+SEQ_LENGTH = 20
 
 # 🔹 Loss Function
 LOSS_FUNCTION = "MSE"  # Options: "MSE" (Regression), "CrossEntropy" (Classification)
@@ -41,7 +44,7 @@ DEBUG_MODE = False  # Enable/disable debugging prints
 ### 🏷 Feature Lists
 # 🔹 Categorical Features (Will Be Embedded)
 CATEGORICAL_FEATURES = [
-    "pitcher", "batter", "inning_topbot", "stand", "p_throws", "game_pk"
+    "pitch_type", "pitcher", "batter", "events", "description", "inning_topbot", "stand", "p_throws", "game_pk"
 ]
 
 # 🔹 Numerical Features (Will Be Scaled)
@@ -56,9 +59,9 @@ FEATURE_COLUMNS = CATEGORICAL_FEATURES + NUMERICAL_FEATURES
 
 ### 🔹 Target Variables (Model Outputs)
 TARGET_FEATURES = [
-    "pitch_type",  # Categorical prediction
-    "release_speed", "release_spin_rate", "release_extension",  # Regression
-    "plate_x", "plate_z"  # Location predictions
+    "pitch_type", "release_speed", "release_spin_rate", "release_extension",
+    "plate_x", "plate_z", "vx0", "vy0", "vz0", "ax", "ay", "az",
+    "balls", "strikes", "outs_when_up", "effective_speed", "delta_run_exp"
 ]
 
 ### 🔹 Feature Scaling Options
@@ -74,10 +77,4 @@ PITCH_TYPES = {
     4: "Cutter",
     5: "Splitter",
     6: "Knuckleball"
-}
-
-OUTCOME_TYPES = {
-    0: "Ball",
-    1: "Strike",
-    2: "Contact"
 }
