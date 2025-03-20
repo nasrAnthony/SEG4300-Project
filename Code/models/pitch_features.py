@@ -8,6 +8,8 @@ class PitchFeaturesModel(nn.Module):
     def __init__(self, num_pitch_types, num_pitchers, num_batters, num_stands, num_p_throws, num_innings, num_events, num_descriptions, input_dim, seq_length, hidden_dim, num_layers):
         super(PitchFeaturesModel, self).__init__()
 
+        self.seq_length = seq_length
+
         # 🔹 Categorical embeddings
         self.pitcher_embedding = nn.Embedding(num_pitchers, 16)
         self.batter_embedding = nn.Embedding(num_batters, 16)
@@ -18,7 +20,7 @@ class PitchFeaturesModel(nn.Module):
         self.description_embedding = nn.Embedding(num_descriptions, 16)
 
         # 🔹 LSTM for sequential processing
-        self.lstm = LSTM((input_dim * seq_length) + 72, hidden_dim, num_layers)  # Supports past pitches
+        self.lstm = LSTM(input_dim + 72, hidden_dim, num_layers)  # Input: (batch_size, seq_length, features)
         self.attention = AttentionLayer(hidden_dim)
 
         # 🔹 Multi-task learning outputs
@@ -43,7 +45,7 @@ class PitchFeaturesModel(nn.Module):
     def forward(self, prev_pitches, pitcher_ids, batter_ids, stands, p_throws, innings, events, descriptions, numerical_features):
         """
         Args:
-        - prev_pitches: (batch_size, seq_length * num_features) - Previous `N` pitches (Optional).
+        - prev_pitches: (batch_size, seq_length, num_features) - Previous `N` pitches.
         - pitcher_ids: (batch_size, 1) - Pitcher ID.
         - batter_ids: (batch_size, 1) - Batter ID.
         - stands: (batch_size, 1) - Batter handedness.
@@ -54,35 +56,36 @@ class PitchFeaturesModel(nn.Module):
         - numerical_features: (batch_size, num_features) - Current pitch numerical features.
         """
 
+        batch_size = pitcher_ids.shape[0]
+
         # 🔹 Embed categorical variables
-        pitcher_embed = self.pitcher_embedding(pitcher_ids)
-        batter_embed = self.batter_embedding(batter_ids)
-        stand_embed = self.stand_embedding(stands)
-        p_throws_embed = self.p_throws_embedding(p_throws)
-        inning_embed = self.inning_embedding(innings)
-        event_embed = self.event_embedding(events)
-        description_embed = self.description_embedding(descriptions)
+        pitcher_embed = self.pitcher_embedding(pitcher_ids).unsqueeze(1)  # (batch_size, 1, embed_dim)
+        batter_embed = self.batter_embedding(batter_ids).unsqueeze(1)
+        stand_embed = self.stand_embedding(stands).unsqueeze(1)
+        p_throws_embed = self.p_throws_embedding(p_throws).unsqueeze(1)
+        inning_embed = self.inning_embedding(innings).unsqueeze(1)
+        event_embed = self.event_embedding(events).unsqueeze(1)
+        description_embed = self.description_embedding(descriptions).unsqueeze(1)
 
-        # 🔹 Handling previous pitches:
-        if prev_pitches is not None:
-            # Case 1: History exists (during training or later-game simulation)
-            lstm_input = torch.cat([
-                prev_pitches, pitcher_embed, batter_embed, stand_embed,
-                p_throws_embed, inning_embed, event_embed, description_embed
-            ], dim=1)
+        # 🔹 Expand categorical embeddings to match sequence length
+        expanded_pitcher_embed = pitcher_embed.expand(-1, self.seq_length, -1)
+        expanded_batter_embed = batter_embed.expand(-1, self.seq_length, -1)
+        expanded_stand_embed = stand_embed.expand(-1, self.seq_length, -1)
+        expanded_p_throws_embed = p_throws_embed.expand(-1, self.seq_length, -1)
+        expanded_inning_embed = inning_embed.expand(-1, self.seq_length, -1)
+        expanded_event_embed = event_embed.expand(-1, self.seq_length, -1)
+        expanded_description_embed = description_embed.expand(-1, self.seq_length, -1)
 
-            # 🔹 LSTM + Attention
-            lstm_out = self.lstm(lstm_input.unsqueeze(1))
-            context_vector, attn_weights = self.attention(lstm_out)
+        # 🔹 Concatenate inputs for LSTM
+        lstm_input = torch.cat([
+            prev_pitches, expanded_pitcher_embed, expanded_batter_embed,
+            expanded_stand_embed, expanded_p_throws_embed, expanded_inning_embed,
+            expanded_event_embed, expanded_description_embed
+        ], dim=2)  # (batch_size, seq_length, features)
 
-        else:
-            # Case 2: No history (first pitch scenario)
-            lstm_input = torch.cat([
-                pitcher_embed, batter_embed, stand_embed, p_throws_embed,
-                inning_embed, event_embed, description_embed, numerical_features
-            ], dim=1)
-
-            context_vector = lstm_input  # Skip LSTM, use direct features
+        # 🔹 LSTM + Attention
+        lstm_out = self.lstm(lstm_input)  # Output: (batch_size, seq_length, hidden_dim)
+        context_vector, attn_weights = self.attention(lstm_out)  # (batch_size, hidden_dim)
 
         # 🔹 Multi-task predictions
         return {
