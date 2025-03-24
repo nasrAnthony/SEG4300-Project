@@ -32,6 +32,35 @@ def sort_n_group(df):
     df["on_3b"] = df["on_3b"].astype(int)
     return df
 
+def sort_n_group_pitcher(df, pitcher_id):
+    """
+    Sorts and groups the dataset by game and at-bat while **only keeping rows**
+    where the pitcher matches the given pitcher_id.
+
+    Args:
+        df (DataFrame): The raw dataset.
+        pitcher_id (int): The ID of the pitcher to filter the dataset.
+
+    Returns:
+        DataFrame: Processed dataset containing only rows for the specified pitcher.
+    """
+    #Filter the dataset for only this pitcher
+    df = df[df["pitcher"] == pitcher_id].copy()
+
+    #Sort by game, at-bat number, and pitch number
+    df = df.sort_values(by=['game_pk', 'at_bat_number', 'atbat_pitch_number'])
+
+    #Apply preliminary encoding
+    df["stand"] = df["stand"].map({"L": 0, "R": 1})
+    df["p_throws"] = df["p_throws"].map({"L": 0, "R": 1})
+    df["inning"] = df["inning"] - 1 
+    df["inning_topbot"] = df["inning_topbot"].map({"Top": 0, "Bot": 1})
+    df["on_1b"] = df["on_1b"].astype(int)
+    df["on_2b"] = df["on_2b"].astype(int)
+    df["on_3b"] = df["on_3b"].astype(int)
+
+    return df
+
 def compute_feature_medians(df):
     """
     Computes median values for all numeric features that require imputation.
@@ -305,7 +334,18 @@ def encode_and_scale(X_sequences, Y_sequences):
         processed_Y.append(at_bat_data)
         index += num_pitches
 
-    return processed_X, processed_Y, label_encoders_X
+
+    transformers_dict = {
+        "label_encoders_X": label_encoders_X,        # dict of {col_name: LabelEncoder}
+        "le_Y_type": le_Y_type,                      # pitch type label encoder
+        "le_Y_result_desc": le_Y_result_desc,        # result description label encoder
+        "le_Y_result_event": le_Y_result_event,      # result event label encoder
+        "scaler_X": scaler_X,                        # StandardScaler for X numeric features
+        "scaler_Y_cont": scaler_Y_cont               # StandardScaler for Y continuous
+    }
+    torch.save(transformers_dict, r"C:\Users\Richard\Documents\SEG4300\Project\SEG4300-Project\Code\saved_models\transformers.pt")
+
+    return processed_X, processed_Y, label_encoders_X, le_Y_type, le_Y_result_desc, le_Y_result_event
 
 #TRAIN AND TEST SPLIT
 def split_data(X_encoded, Y_encoded, test_size=0.2, random_state=42):

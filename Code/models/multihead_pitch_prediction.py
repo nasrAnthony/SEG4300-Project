@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import sys
 import os
+import json
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from layers.mlp import MLP
 from layers.lstm import LSTM
@@ -19,9 +20,29 @@ class MultiHeadLSTM(nn.Module):
         hidden_dim,
         #Output numbers (dont use input desc/event totals)
         num_pitch_type_classes, num_description_classes, num_event_classes,
-        cont_dim, lstm_layers=1, dropout=0.0
+        cont_dim, lstm_layers=1, dropout=0.0,
+        config_save_path=r"C:\Users\Richard\Documents\SEG4300\Project\SEG4300-Project\Code\saved_models\model_config.txt"
     ):
         super().__init__()
+
+        
+        #Store model arguments for saving later
+        self.config = {
+            "num_numeric_features": num_numeric_features,
+            "num_pitchers": num_pitchers, "num_batters": num_batters,
+            "num_prev_descriptions": num_prev_descriptions, "num_prev_events": num_prev_events,
+            "num_prev_pitch_types": num_prev_pitch_types, "num_low_card_cats": num_low_card_cats,
+            "num_innings": num_innings, "inning_emb_dim": inning_emb_dim,
+            "pitcher_emb_dim": pitcher_emb_dim, "batter_emb_dim": batter_emb_dim,
+            "prev_description_emb_dim": prev_description_emb_dim, "prev_event_emb_dim": prev_event_emb_dim,
+            "prev_pitch_emb_dim": prev_pitch_emb_dim, "hidden_dim": hidden_dim,
+            "num_pitch_type_classes": num_pitch_type_classes, "num_description_classes": num_description_classes,
+            "num_event_classes": num_event_classes, "cont_dim": cont_dim,
+            "lstm_layers": lstm_layers, "dropout": dropout
+        }
+
+        #Save path for model arguments
+        self.config_save_path = config_save_path
 
         #Track numeric feature count
         self.num_numeric_features = num_numeric_features
@@ -128,3 +149,10 @@ class MultiHeadLSTM(nn.Module):
         pitch_result_event = self.pitch_result_head_event(lstm_out_2d).view(bs, sl, -1)
 
         return pitch_type_logits, pitch_cont_values, pitch_result_desc, pitch_result_event
+
+
+
+    def save_model_config(self):
+        with open(self.config_save_path, "w") as f:
+            json.dump(self.config, f, indent=4)
+        print(f"Model config saved to {self.config_save_path}")

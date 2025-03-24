@@ -1,0 +1,23 @@
+{
+    "num_numeric_features": 7,
+    "num_pitchers": 879,
+    "num_batters": 3096,
+    "num_prev_descriptions": 12,
+    "num_prev_events": 3,
+    "num_prev_pitch_types": 16,
+    "num_low_card_cats": 10,
+    "num_innings": 20,
+    "inning_emb_dim": 4,
+    "pitcher_emb_dim": 30,
+    "batter_emb_dim": 50,
+    "prev_description_emb_dim": 4,
+    "prev_event_emb_dim": 2,
+    "prev_pitch_emb_dim": 4,
+    "hidden_dim": 128,
+    "num_pitch_type_classes": 16,
+    "num_description_classes": 14,
+    "num_event_classes": 24,
+    "cont_dim": 5,
+    "lstm_layers": 2,
+    "dropout": 0.2
+}
